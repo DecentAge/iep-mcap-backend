@@ -17,9 +17,9 @@
 module.exports = {
     port: 8892,
     mongodb: {
-        user: "apiUser",
-        pass: "**MyPasswordHere**",
-        host: "mongodb://localhost/macap"
+        user: "market",
+        pass: "marketTest",
+        host: "mongodb://mcap-db:27017/mcap"
     },
     defaults: {
         //paging limit
