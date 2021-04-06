@@ -22,6 +22,8 @@ mongoose.Promise = global.Promise;
 mongoose.connect(
     config.mongodb.host,
     {
+        user:config.mongodb.user,
+        pass:config.mongodb.pass
 
         //   auth:{
         //		authdb:'admin',

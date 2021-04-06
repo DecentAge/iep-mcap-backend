@@ -1,2 +1,2 @@
 #!/bin/bash
-docker build -t iep-mcap-backend .
+docker build -t decentage/iep-mcap-backend:latest .
