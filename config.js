@@ -19,7 +19,7 @@ module.exports = {
     mongodb: {
         user: "market",
         pass: "marketTest",
-        host: "mongodb://mcap-db:27017/mcap"
+        host: "mongodb://mcap-db:27017/market"
     },
     defaults: {
         //paging limit
