@@ -17,8 +17,10 @@ jobs:
       release-version: ${{ steps.release-version.outputs.release-version }}
     steps:
       - uses: actions/checkout@v2
+      
       - name: Run a one-line script
         run: echo Hello, world
+        
       - id: release-version
         run: echo "::set-output name=release-version::1.0.0"
   build:
@@ -26,7 +28,6 @@ jobs:
     needs: set-release
     runs-on: ubuntu-latest
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
 
       # Runs a single command using the runners shell
