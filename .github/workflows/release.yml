@@ -14,11 +14,13 @@ jobs:
     name: Assign the release version to the source
     runs-on: ubuntu-latest
     outputs:
-      release-version: 1.0.0
+      release-version: ${{ steps.release-version.outputs.release-version }}
     steps:
       - uses: actions/checkout@v2
       - name: Run a one-line script
-        run: echo Hello, world!
+        run: echo Hello, world
+      - id: release-version
+        run: echo "::set-output name=release-version::1.0.0"
   build:
     name: Build the artifacts
     needs: set-release
