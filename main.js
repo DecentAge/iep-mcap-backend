@@ -58,8 +58,8 @@ app.use(router);
 
 require('./routes/route.main.js')(router);
 
-server = app.listen(port, '127.0.0.1');
-// server = app.listen(port);
+//server = app.listen(port, '127.0.0.1');
+server = app.listen(port);
 
 cronjobs = {};
 
