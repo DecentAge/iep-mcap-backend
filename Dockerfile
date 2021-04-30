@@ -1,9 +1,9 @@
 FROM node:14
-RUN mkdir -p /usr
-WORKDIR /usr
-COPY ./package.json /usr
+WORKDIR /app
+COPY ./package.json /app
+RUN cat /app/package.json
 RUN npm install --silent
-COPY . /usr
+COPY . /app
 #RUN npm run lint
 EXPOSE 8992
 ENTRYPOINT ["npm", "run"]
