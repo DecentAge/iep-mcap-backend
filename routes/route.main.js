@@ -15,6 +15,7 @@
  ******************************************************************************/
 
 var fn = require('../controllers/control.main');
+var pjson = require('../package.json');
 
 function cliAddress(req) {
 
@@ -41,6 +42,11 @@ module.exports = function (router) {
         res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
         next();
     });
+
+    router.route('/api/version')
+        .get(function (req, res) {
+            res.send(pjson.version);
+        });
 
     router.route('/api/v1/fetch')
         .get(function (req, res) {
