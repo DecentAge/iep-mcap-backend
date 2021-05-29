@@ -8,4 +8,4 @@ docker build -t decentage/iep-mcap-backend:${RELEASE_VERSION} .
 
 echo "Creating fake zip file to avoid artifact upload issue"
 mkdir -p ./build
-touch ./build/iep-cloudflared.zip
+touch ./build/iep-mcap-backend.zip
