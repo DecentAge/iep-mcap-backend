@@ -1,4 +1,4 @@
-** Release 0.3.0 **
+# Release 0.3.1
 - dockerized project
 - upgrade dependencies
 - added ci/cd gitlab config
