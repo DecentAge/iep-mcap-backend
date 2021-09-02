@@ -1,3 +1,6 @@
+# Release 0.3.2
+- added readme
+
 # Release 0.3.1
 - dockerized project
 - upgrade dependencies
