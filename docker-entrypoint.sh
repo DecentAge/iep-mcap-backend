@@ -7,6 +7,7 @@ init_secret() {
 		echo "Initializing secret "${secret_name}" from secret /run/secrets/${secret_name}"
 		local secret_value=$(cat /run/secrets/${secret_name})
 		export ${secret_name}="${secret_value}"
+		export MONGO_PASSWORD="ESSEN"
 	elif [[ -n ${secret_name:-} ]]; then
 		echo "Initializing secret ${secret_name} from variable ${secret_name}"
 	else
