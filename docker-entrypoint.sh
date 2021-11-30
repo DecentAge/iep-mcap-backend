@@ -16,6 +16,8 @@ init_secret() {
 	fi	
 }
 
+export MONGO_PASSWORD="ESSEN"
+
 export WUFF="TEST"
 echo "$MONGO_PASSWORD"
 echo "secret_name"
