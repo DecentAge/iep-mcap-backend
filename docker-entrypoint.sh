@@ -2,6 +2,7 @@
 set -o nounset
 set -o errexit
 set -o pipefail
+set -o allexport
 
 init_secret() {
 	local secret_name="$1"
@@ -17,11 +18,8 @@ init_secret() {
 	fi	
 }
 
-export MONGO_PASSWORD="ESSEN"
+echo "MONGO_PASSWORD=$MONGO_PASSWORD"
 
-export WUFF="TEST"
-echo "$MONGO_PASSWORD"
-echo "secret_name"
 
 init_secret "MONGO_PASSWORD"
 
