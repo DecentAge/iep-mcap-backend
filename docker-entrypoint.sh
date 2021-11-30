@@ -11,18 +11,20 @@ init_secret() {
 		echo "Initializing secret "${secret_name}" from secret /run/secrets/${secret_name}"
 		local secret_value="$(cat /run/secrets/${secret_name})"
 		export ${secret_name}="${secret_value}"
-		export MONGO_PASSWORD=1
+		export MONGO_PASSWORD2="1"
 	elif [[ -n ${secret_name:-} ]]; then
 		echo "Initializing secret ${secret_name} from variable ${secret_name}"
 	else
         echo >&2 "error: both ${secret_name} and /run/secrets/${secret_name} are not set"
 		exit 1		
-	fi	
+	fi
+	
 }
-
-echo "==> MONGO_PASSWORD=$MONGO_PASSWORD"
 
 
 init_secret "MONGO_PASSWORD"
+echo "==> MONGO_PASSWORD2=$MONGO_PASSWORD2"
+echo "==> MONGO_PASSWORD=$MONGO_PASSWORD"
+
 
 exec "$@"
