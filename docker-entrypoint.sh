@@ -1,5 +1,7 @@
-#!/bin/bash
-set -eou pipefail
+#!/bin/bash -e
+set -o nounset
+set -o errexit
+set -o pipefail
 
 init_secret() {
 	local secret_name="$1"
@@ -7,7 +9,6 @@ init_secret() {
 		echo "Initializing secret "${secret_name}" from secret /run/secrets/${secret_name}"
 		local secret_value=$(cat /run/secrets/${secret_name})
 		export ${secret_name}="${secret_value}"
-		export MONGO_PASSWORD="ESSEN"
 	elif [[ -n ${secret_name:-} ]]; then
 		echo "Initializing secret ${secret_name} from variable ${secret_name}"
 	else
