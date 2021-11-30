@@ -15,6 +15,10 @@ init_secret() {
 	fi	
 }
 
+export WUFF="TEST"
+echo "$MONGO_PASSWORD"
+echo "secret_name"
+
 init_secret "MONGO_PASSWORD"
 
 exec "$@"
