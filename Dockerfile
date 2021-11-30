@@ -15,4 +15,4 @@ COPY --from=builder /app /app
 
 EXPOSE 8992
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
-CMD /app/wait && echo "MONGO_PASSWORD=$MONGO_PASSWORD, MONGO_USERNAME=$MONGO_USERNAME, IEP_MCAP_DATABASE_DB=$IEP_MCAP_DATABASE_DB " && npm run start
+CMD /app/wait && echo "MONGO_PASSWORD=$MONGO_PASSWORD, MONGO_USERNAME=$MONGO_USERNAME, MONGO_DB=$MONGO_DB " && npm run start
