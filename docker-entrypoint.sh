@@ -18,6 +18,6 @@ init_secret() {
 	fi
 	
 }
-
+NODE_ENV=${NODE_ENV:-production}
 init_secret "MONGO_PASSWORD"
 exec "$@"
