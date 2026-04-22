@@ -14,24 +14,18 @@
  *                                                                            *
  ******************************************************************************/
 
-const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
+const express = require('express');
 
-const Currency = new Schema({
-    "id": String,
-    "name": String,
-    "symbol": String,
-    "rank": Number,
-    "price_usd": Number,
-    "price_btc": Number,
-    "24h_volume_usd": Number,
-    "market_cap_usd": Number,
-    "available_supply": Number,
-    "total_supply": Number,
-    "percent_change_1h": Number,
-    "percent_change_24h": Number,
-    "percent_change_7d": Number,
-    "last_updated": Number
-}, { id: false });
+const app = express();
 
-module.exports = mongoose.model('Currency', Currency);
+app.enable('trust proxy');
+
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+
+const router = express.Router();
+app.use(router);
+
+require('./routes/route.main.js')(router);
+
+module.exports = { app, router };

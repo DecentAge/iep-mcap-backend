@@ -14,32 +14,15 @@
  *                                                                            *
  ******************************************************************************/
 
-var fn = require('../controllers/control.main');
-var pjson = require('../package.json');
-
-function cliAddress(req) {
-
-    var ip = (req.headers["X-Forwarded-For"] ||
-        req.headers["x-forwarded-for"] ||
-        '').split(',')[0] ||
-        req.client.remoteAddress;
-
-    if (ip.substr(0, 7) == "::ffff:") {
-        ip = ip.substr(7)
-    }
-
-    return ip.trim();
-}
-
-function isLocal(req) {
-    return server.address().address == cliAddress(req);
-}
+const fn = require('../controllers/control.main');
+const config = require('../core/config.js');
+const pjson = require('../package.json');
 
 module.exports = function (router) {
 
     router.use(function (req, res, next) {
-        res.header("Access-Control-Allow-Origin", "*");
-        res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+        res.header('Access-Control-Allow-Origin', '*');
+        res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
         next();
     });
 
@@ -49,108 +32,75 @@ module.exports = function (router) {
         });
 
     router.route('/api/v1/fetch')
-        .get(function (req, res) {
+        .get(async function (req, res) {
+            if (!req.query.key || req.query.key !== config.adminKey) {
+                return res.status(400).send({ code: 400, success: false, message: 'Invalid or missing key.' });
+            }
 
-            if (!isLocal(req))
-                return res.send({ code: 400, success: false, message: 'This endpoint is not remotely accessible.' });
-
-            console.log('Fetching...');
-
-            fn.fetchCurrencies(function (err) {
-
-                if (err) {
-                    console.log(err);
-                    res.status(500);
-                    res.send({ code: 500, success: false, message: err });
-                } else {
-                    res.status(200);
-                    res.send({ code: 200, success: true, message: 'Currencies fetched from CoinMarket.' });
-                }
-
-            })
-
+            try {
+                await fn.fetchCurrencies();
+                res.status(200).send({ code: 200, success: true, message: 'Currencies fetched from CoinMarket.' });
+            } catch (err) {
+                console.error(err);
+                res.status(500).send({ code: 500, success: false, message: 'An error has occurred.' });
+            }
         });
 
-    //Activation and deactivation endpoints
     router.route('/api/v1/fetch/deactivate')
         .get(function (req, res) {
-
-            console.log(req.query.key);
-
-            if (!req.query.key || req.query.key != config.adminKey)
-                return res.send({ code: 400, success: false, message: 'Invalid or missing key.' });
+            if (!req.query.key || req.query.key !== config.adminKey) {
+                return res.status(400).send({ code: 400, success: false, message: 'Invalid or missing key.' });
+            }
 
             cronjobs.crawl.stop();
 
-            res.status(200);
-            res.send({ code: 200, success: true, message: 'Internal cron for crawl deactivated.' });
-
+            res.status(200).send({ code: 200, success: true, message: 'Internal cron for crawl deactivated.' });
         });
 
     router.route('/api/v1/fetch/activate')
         .get(function (req, res) {
-
-            console.log(req.query.key);
-
-            if (!req.query.key || req.query.key != config.adminKey)
-                return res.send({ code: 400, success: false, message: 'Invalid or missing key.' });
+            if (!req.query.key || req.query.key !== config.adminKey) {
+                return res.status(400).send({ code: 400, success: false, message: 'Invalid or missing key.' });
+            }
 
             cronjobs.crawl.stop();
             cronjobs.crawl.start();
 
-            res.status(200);
-            res.send({ code: 200, success: true, message: 'Internal cron for crawl activated.' });
-
+            res.status(200).send({ code: 200, success: true, message: 'Internal cron for crawl activated.' });
         });
 
     router.route('/api/v1/get')
-        .get(function (req, res) {
+        .get(async function (req, res) {
+            try {
+                const page = req.query.page ? Number(req.query.page) - 1 : 0;
+                const results = req.query.results ? Number(req.query.results) : config.defaults.limit;
 
-            var page = req.query.page;
-            var results = req.query.results;
-            var filter = req.query.filter;
-            var order = req.query.order;
+                let filter = req.query.filter || 'rank';
+                let order = req.query.order || 'asc';
 
-            var name = req.query.name;
-
-            page = page ? page - 1 : 0;
-
-            results = results ? results : config.defaults.limit;
-
-            filter = filter ? filter : 'rank';
-
-            order = order ? order : 'asc';
-
-            if (filter == '24h') {
-                filter = 'percent_change_24h';
-                order = 'desc';
-            }
-            if (filter == '7d') {
-                filter = 'percent_change_7d';
-                order = 'desc';
-            }
-
-            var params = {
-                page: page,
-                results: results,
-                filter: filter,
-                order: order,
-                name: name
-            };
-
-            fn.getCurrencies(params, function (err, data) {
-
-                if (err) {
-                    console.log(err);
-                    res.status(500);
-                    res.send({ code: 500, success: false, message: err });
-                } else {
-                    res.type('json');
-                    res.send(data);
+                if (filter === '24h') {
+                    filter = 'percent_change_24h';
+                    order = 'desc';
+                }
+                if (filter === '7d') {
+                    filter = 'percent_change_7d';
+                    order = 'desc';
                 }
 
-            })
+                const params = {
+                    page,
+                    results,
+                    filter,
+                    order,
+                    name: req.query.name
+                };
 
+                const data = await fn.getCurrencies(params);
+                res.type('json');
+                res.send(data);
+            } catch (err) {
+                console.error(err);
+                res.status(500).send({ code: 500, success: false, message: 'An error has occurred.' });
+            }
         });
-
 };
