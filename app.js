@@ -15,6 +15,7 @@
  ******************************************************************************/
 
 const express = require('express');
+const config = require('./core/config.js');
 
 const app = express();
 
@@ -24,7 +25,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 const router = express.Router();
-app.use(router);
+app.use(config.publicPath, router);
 
 require('./routes/route.main.js')(router);
 

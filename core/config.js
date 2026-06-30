@@ -16,6 +16,7 @@
 
 module.exports = {
     port: 8892,
+    publicPath: process.env.PUBLIC_PATH || '/mcap-backend',
     defaults: {
         limit: 10
     },
