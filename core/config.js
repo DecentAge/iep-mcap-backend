@@ -16,15 +16,12 @@
 
 module.exports = {
     port: 8892,
-    mongodb: {
-        user: "market",
-        pass: "marketTest",
-        host: "mongodb://mcap-db:27017/market"
-    },
+    publicPath: process.env.PUBLIC_PATH || '/mcap-backend',
     defaults: {
-        //paging limit
         limit: 10
     },
-    adminkey: '**MyAdminKeyHere**',
-    apiKey: '6bf9e35a-241d-49a4-82f5-c4a9cafb29d2'
+    adminKey: process.env.IEP_MCAP_BACKEND_ADMIN_KEY || '**MyAdminKeyHere**',
+    coinMarketCapApiKey: process.env.IEP_MCAP_BACKEND_CMC_API_KEY || '',
+    coinMarketCapUrl: 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest?start=1&limit=5000',
+    logLevel: process.env.IEP_MCAP_BACKEND_LOGLEVEL || 'info'
 };

@@ -15,68 +15,80 @@
  ******************************************************************************/
 
 const mongoose = require('mongoose');
-const request = require('request');
-config = require('./config.js');
-
-mongoose.Promise = global.Promise;
+const { CronJob } = require('cron');
+const config = require('./core/config.js');
+const { app } = require('./app.js');
 
 const {
-  MONGO_USERNAME,
-  MONGO_PASSWORD,
-  MONGO_HOSTNAME,
-  MONGO_PORT,
-  MONGO_DB
+    MONGO_USERNAME,
+    MONGO_PASSWORD,
+    MONGO_HOSTNAME,
+    MONGO_PORT,
+    MONGO_DB
 } = process.env;
 
-const options = {
-  useNewUrlParser: true,
-  reconnectTries: Number.MAX_VALUE,
-  reconnectInterval: 500,
-  connectTimeoutMS: 10000,
-};
+const url = `mongodb://${MONGO_USERNAME}:${encodeURIComponent(MONGO_PASSWORD)}@${MONGO_HOSTNAME}:${MONGO_PORT}/${MONGO_DB}?authSource=admin`;
 
-const url = `mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@${MONGO_HOSTNAME}:${MONGO_PORT}/${MONGO_DB}?authSource=admin`;
+mongoose.connect(url, { connectTimeoutMS: 10000 });
 
-mongoose.connect(url, options);
-
-var express = require('express');
-var app = express();
-
-var toobusy = require('toobusy-js');
-app.use(function (req, res, next) {
-    if (toobusy()) {
-        res.send(503, "Server is too busy right now, sorry.");
-    } else {
-        next();
-    }
+mongoose.connection.on('connected', function () {
+    console.log('Mongoose default connection open to ' + MONGO_HOSTNAME);
 });
 
-var port = config.port;
+mongoose.connection.on('error', function (err) {
+    console.log('Mongoose default connection error: ' + err);
+});
 
-var router = express.Router();
-app.use(router);
+mongoose.connection.on('disconnected', function () {
+    console.log('Mongoose default connection disconnected');
+});
 
-require('./routes/route.main.js')(router);
+process.on('SIGINT', async function () {
+    await mongoose.connection.close();
+    console.log('Mongoose default connection disconnected through app termination');
+    process.exit(0);
+});
 
-//server = app.listen(port, '127.0.0.1');
-server = app.listen(port);
+const port = config.port;
+const server = app.listen(port);
 
-cronjobs = {};
+global.cronjobs = {};
+
+const main = require('./controllers/control.main');
+
+let fetchLock = false;
 
 server.on('listening', function () {
-    console.log('Listening on port ' + port)
-    console.log('Starting internal cron.');
+    console.log('Listening on port ' + port);
+    console.log('Starting internal cron for fetch..');
 
-    var CronJob = require('cron').CronJob;
-
-    cronjobs.crawl = new CronJob({
+    cronjobs.crawl = CronJob.from({
         cronTime: '00 */55 * * * *',
         onTick: function () {
-            console.log('Initiating fetch from cronjob..');
-            request('http://localhost:8892/api/v1/fetch', function () {
-            });
-        },
-        start: true
-    });
+            if (!fetchLock) {
+                fetchLock = true;
 
+                console.log("=========================\nSTART FETCH CURRENCIES\n=========================");
+
+                main.fetchCurrencies()
+                    .then(() => {
+                        console.log("=========================\nFETCH CURRENCIES FINISHED\n=========================");
+                    })
+                    .catch((error) => {
+                        console.error("Error occurred during cronjob", error);
+                    })
+                    .finally(() => {
+                        fetchLock = false;
+                    });
+            } else {
+                console.info("Fetch is locked due to a running process - skipping this iteration");
+            }
+        },
+        start: true,
+        runOnInit: false,
+    });
+});
+
+process.on('uncaughtException', function (err) {
+    console.log('******* Unexpected Error *******', err);
 });
