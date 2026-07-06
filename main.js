@@ -18,6 +18,7 @@ const mongoose = require('mongoose');
 const { CronJob } = require('cron');
 const config = require('./core/config.js');
 const { app } = require('./app.js');
+const main = require('./controllers/control.main');
 
 const {
     MONGO_USERNAME,
@@ -31,21 +32,36 @@ const url = `mongodb://${MONGO_USERNAME}:${encodeURIComponent(MONGO_PASSWORD)}@$
 
 mongoose.connect(url, { connectTimeoutMS: 10000 });
 
+let xinBackfilled = false;
 mongoose.connection.on('connected', function () {
-    console.log('Mongoose default connection open to ' + MONGO_HOSTNAME);
+    console.log('[mcap] MongoDB connected: ' + MONGO_HOSTNAME);
+    // One-time at startup: backfill the XIN history (so the chart has data immediately)
+    // and fetch the current XIN price (so the fiat fields aren't empty until the cron).
+    if (!xinBackfilled) {
+        xinBackfilled = true;
+        // Chain: backfill first, then fetchXin — both write today's entry, so running
+        // them concurrently could race on the unique `date` index (E11000).
+        main.backfillXinHistory()
+            .then((n) => {
+                console.log('[mcap] XIN history backfill done — ' + n + ' new day(s) added');
+                return main.fetchXin();
+            })
+            .then(() => console.log('[mcap] Initial XIN price fetched'))
+            .catch((err) => console.error('[mcap] XIN startup fetch failed:', err.message));
+    }
 });
 
 mongoose.connection.on('error', function (err) {
-    console.log('Mongoose default connection error: ' + err);
+    console.error('[mcap] MongoDB connection error:', err);
 });
 
 mongoose.connection.on('disconnected', function () {
-    console.log('Mongoose default connection disconnected');
+    console.log('[mcap] MongoDB disconnected');
 });
 
 process.on('SIGINT', async function () {
     await mongoose.connection.close();
-    console.log('Mongoose default connection disconnected through app termination');
+    console.log('[mcap] MongoDB connection closed on app termination');
     process.exit(0);
 });
 
@@ -54,13 +70,11 @@ const server = app.listen(port);
 
 global.cronjobs = {};
 
-const main = require('./controllers/control.main');
-
 let fetchLock = false;
 
 server.on('listening', function () {
-    console.log('Listening on port ' + port);
-    console.log('Starting internal cron for fetch..');
+    console.log('[mcap] Listening on port ' + port);
+    console.log('[mcap] Starting fetch cron (currencies + XIN)');
 
     cronjobs.crawl = CronJob.from({
         cronTime: '00 */55 * * * *',
@@ -68,20 +82,27 @@ server.on('listening', function () {
             if (!fetchLock) {
                 fetchLock = true;
 
-                console.log("=========================\nSTART FETCH CURRENCIES\n=========================");
+                console.log('[mcap] Fetch started (currencies + XIN)');
 
-                main.fetchCurrencies()
-                    .then(() => {
-                        console.log("=========================\nFETCH CURRENCIES FINISHED\n=========================");
-                    })
-                    .catch((error) => {
-                        console.error("Error occurred during cronjob", error);
+                // Fetch CoinMarketCap currencies AND the ieUnit XIN reference price.
+                // allSettled so a failure of one source does not block the other.
+                Promise.allSettled([main.fetchCurrencies(), main.fetchXin()])
+                    .then((results) => {
+                        const labels = ['currencies', 'XIN'];
+                        results.forEach((r, i) => {
+                            if (r.status === 'rejected') {
+                                console.error('[mcap] Fetch ' + labels[i] + ' failed:', r.reason);
+                            } else {
+                                console.log('[mcap] Fetch ' + labels[i] + ' ok');
+                            }
+                        });
+                        console.log('[mcap] Fetch finished');
                     })
                     .finally(() => {
                         fetchLock = false;
                     });
             } else {
-                console.info("Fetch is locked due to a running process - skipping this iteration");
+                console.warn('[mcap] Previous fetch still running — skipping this tick');
             }
         },
         start: true,
@@ -90,5 +111,5 @@ server.on('listening', function () {
 });
 
 process.on('uncaughtException', function (err) {
-    console.log('******* Unexpected Error *******', err);
+    console.error('[mcap] Uncaught exception:', err);
 });
