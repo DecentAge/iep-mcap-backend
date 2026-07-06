@@ -16,6 +16,7 @@
 
 const axios = require('axios');
 const Currency = require('../models/model.coinmarket');
+const XinPrice = require('../models/model.xin-price');
 const config = require('../core/config.js');
 
 exports.fetchCurrencies = async function () {
@@ -68,4 +69,79 @@ exports.getCurrencies = async function (params) {
         .sort(sort)
         .skip(skip)
         .limit(parseInt(params.results, 10));
+};
+
+// XIN is not on CoinMarketCap; its USD reference comes from the ieUnit API
+// (special.XIN.usd). Store it as a daily time-series (one entry per day) so a real
+// XIN price history builds up, and mirror the current value into the Currency
+// collection so XIN also appears in /api/v1/get.
+exports.fetchXin = async function () {
+    const response = await axios.get(config.ieUnitRatesUrl, { timeout: 30000 });
+    const xin = response.data && response.data.special && response.data.special.XIN;
+    if (!xin || xin.usd == null) {
+        throw new Error('No XIN entry in ieUnit response');
+    }
+
+    const now = new Date();
+    const date = now.toISOString().slice(0, 10); // YYYY-MM-DD
+    const SATOSHI = 1e-8;                          // 1 XIN = 1 Satoshi
+    const priceUsd = xin.usd;
+
+    await XinPrice.findOneAndUpdate(
+        { date },
+        { date, timestamp: now.getTime(), price_usd: priceUsd, price_btc: SATOSHI, source: 'ieUnit' },
+        { upsert: true }
+    );
+
+    await Currency.findOneAndUpdate(
+        { id: 'xin' },
+        {
+            id: 'xin',
+            name: 'XIN (Infinity Economics)',
+            symbol: 'XIN',
+            price_usd: priceUsd,
+            price_btc: SATOSHI,
+            last_updated: now.getTime()
+        },
+        { upsert: true }
+    );
+};
+
+// XIN daily price history (oldest -> newest). Optional { days } limits the range.
+exports.getXinHistory = async function (params) {
+    const query = XinPrice.find({}, { _id: 0, __v: 0 }).sort({ timestamp: 1 });
+    if (params && params.days) {
+        const since = Date.now() - Number(params.days) * 24 * 60 * 60 * 1000;
+        query.where('timestamp').gte(since);
+    }
+    return query;
+};
+
+// One-time, idempotent backfill of the XIN daily history from CoinGecko daily BTC/USD
+// closes x the 1-Satoshi peg, so the chart has history immediately. `$setOnInsert`
+// ensures real ieUnit-sourced days are never overwritten.
+exports.backfillXinHistory = async function (days) {
+    const response = await axios.get('https://api.coingecko.com/api/v3/coins/bitcoin/market_chart', {
+        params: { vs_currency: 'usd', days: days || 365 }, // > 90 days -> CoinGecko returns daily
+        timeout: 30000
+    });
+
+    const prices = response.data && response.data.prices;
+    if (!Array.isArray(prices) || prices.length === 0) {
+        throw new Error('Invalid response from CoinGecko for XIN backfill');
+    }
+
+    const SATOSHI = 1e-8;
+    let inserted = 0;
+    await Promise.all(prices.map(function (p) {
+        const ts = p[0];
+        const date = new Date(ts).toISOString().slice(0, 10);
+        return XinPrice.updateOne(
+            { date },
+            { $setOnInsert: { date, timestamp: ts, price_usd: p[1] * SATOSHI, price_btc: SATOSHI, source: 'coingecko-backfill' } },
+            { upsert: true }
+        ).then(function (r) { inserted += (r.upsertedCount || 0); });
+    }));
+
+    return inserted;
 };

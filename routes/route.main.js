@@ -38,10 +38,10 @@ module.exports = function (router) {
             }
 
             try {
-                await fn.fetchCurrencies();
-                res.status(200).send({ code: 200, success: true, message: 'Currencies fetched from CoinMarket.' });
+                await Promise.all([fn.fetchCurrencies(), fn.fetchXin()]);
+                res.status(200).send({ code: 200, success: true, message: 'Currencies + XIN reference price fetched.' });
             } catch (err) {
-                console.error(err);
+                console.error('[mcap] Request failed:', err);
                 res.status(500).send({ code: 500, success: false, message: 'An error has occurred.' });
             }
         });
@@ -99,7 +99,20 @@ module.exports = function (router) {
                 res.type('json');
                 res.send(data);
             } catch (err) {
-                console.error(err);
+                console.error('[mcap] Request failed:', err);
+                res.status(500).send({ code: 500, success: false, message: 'An error has occurred.' });
+            }
+        });
+
+    // Public: the persisted XIN daily price history (for e.g. the wallet chart). Optional ?days=N.
+    router.route('/api/v1/xin/history')
+        .get(async function (req, res) {
+            try {
+                const data = await fn.getXinHistory({ days: req.query.days });
+                res.type('json');
+                res.send(data);
+            } catch (err) {
+                console.error('[mcap] Request failed:', err);
                 res.status(500).send({ code: 500, success: false, message: 'An error has occurred.' });
             }
         });

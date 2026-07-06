@@ -23,5 +23,7 @@ module.exports = {
     adminKey: process.env.IEP_MCAP_BACKEND_ADMIN_KEY || '**MyAdminKeyHere**',
     coinMarketCapApiKey: process.env.IEP_MCAP_BACKEND_CMC_API_KEY || '',
     coinMarketCapUrl: 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest?start=1&limit=5000',
+    // XIN is not on CoinMarketCap (delisted 2022) — its USD reference comes from ieUnit.
+    ieUnitRatesUrl: process.env.IEP_MCAP_BACKEND_IEUNIT_URL || 'https://ieunit.org/api/v1/rates.php',
     logLevel: process.env.IEP_MCAP_BACKEND_LOGLEVEL || 'info'
 };
