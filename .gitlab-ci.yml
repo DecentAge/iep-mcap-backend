@@ -1,3 +1,4 @@
 include:
-  - project: 'infinity-economics/iep-docker'
-    file: '/gitlab/ci/docker-ci-cd.yml'
+  - project: 'infinity-economics/iep-release'
+    ref: develop
+    file: '/templates/docker-build-publish.yml'
