@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-10-05
+### Changed
+- Maintenance and internal updates.
+
 ## [0.4.1] - 2026-07-06
 ### Added
 - XIN support: persist the daily XIN reference price from the ieUnit API as a time series, with one-time CoinGecko (BTC/USD) backfill of historical data.
