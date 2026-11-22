@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.4.5] - 2026-11-22
+### Fixed
+- Resolved critical and high severity dependency audit findings.
+
 ## [0.4.4] - 2026-10-12
 ### Changed
 - Maintenance and internal updates.
